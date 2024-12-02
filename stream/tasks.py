@@ -5,20 +5,40 @@ import os
 import subprocess
 from .models import Stream
 
+from celery import shared_task
+import subprocess
+import os
+from django.conf import settings
+
 @shared_task
 def start_stream(rtsp_url, output_path):
-    full_output_path = os.path.join(settings.MEDIA_ROOT, output_path)
-    os.makedirs(os.path.dirname(full_output_path), exist_ok=True)
-
-    command = [
-        "ffmpeg", "-i", rtsp_url,
-        "-c:v", "libx264", "-preset", "veryfast", "-f", "hls",
-        full_output_path
-    ]
     try:
-        subprocess.run(command, check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+        # Ensure the output path exists
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        
+        # FFmpeg command to convert RTSP to HLS
+        command = [
+            'ffmpeg',
+            '-i', rtsp_url,         # Input RTSP stream URL
+            '-c:v', 'libx264',       # Video codec
+            '-c:a', 'aac',           # Audio codec
+            '-f', 'hls',             # Format HLS
+            '-hls_time', '10',       # Segment duration in seconds
+            '-hls_list_size', '6',   # Keep 6 segments in the playlist
+            '-hls_wrap', '10',       # Loop the playlist after 10 segments
+            '-start_number', '1',    # Start numbering from 1
+            output_path              # Output path for the HLS files
+        ]
+        
+        # Run FFmpeg command
+        subprocess.run(command, check=True)
+
+        return f"Stream saved to {output_path}"
+
     except subprocess.CalledProcessError as e:
-        print(f"FFmpeg error: {e.stderr.decode()}")
+        print(f"Error occurred: {e}")
+        return f"Error converting stream: {e}"
+
       
 
 @shared_task

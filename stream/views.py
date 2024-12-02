@@ -24,16 +24,20 @@ class StreamAPIView(viewsets.ModelViewSet):
 
             # Construct RTSP URL
             rtsp_url = f"rtsp://{username}:{password}@{ip_address}"
-            output_path = f"{settings.MEDIA_ROOT}/{ip_address}/stream.m3u8"
+            output_path = f"{settings.MEDIA_ROOT}/streams/{ip_address}/stream.m3u8"
 
             # Start the Celery task
             start_stream.delay(rtsp_url, output_path)
 
+            # Return the HLS URL as part of the response
+            hls_url = f"{settings.MEDIA_URL}streams/{ip_address}/stream.m3u8"
+
             return Response(
-                {"message": "Stream process initiated.", "hls_url": output_path},
+                {"message": "Stream process initiated.", "hls_url": hls_url},
                 status=status.HTTP_201_CREATED
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
     
     def update(self, request, *args, **kwargs):
         instance = self.get_object()

@@ -131,8 +131,9 @@ USE_TZ = True
 # Static and media settings
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-MEDIA_URL = '/streams/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'streams')
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 
 
 # Default primary key field type
