@@ -4,6 +4,8 @@ from .models import Stream
 from .serializers import StreamSerializer
 from .tasks import start_stream
 from celery.result import AsyncResult
+from django.conf import settings
+
 
 
 class StreamAPIView(viewsets.ModelViewSet):
@@ -22,7 +24,7 @@ class StreamAPIView(viewsets.ModelViewSet):
 
             # Construct RTSP URL
             rtsp_url = f"rtsp://{username}:{password}@{ip_address}"
-            output_path = f"/streams/{ip_address}/stream.m3u8"
+            output_path = f"/{settings.MEDIA_ROOT}/{ip_address}/stream.m3u8"
 
             # Start the Celery task
             start_stream.delay(rtsp_url, output_path)

@@ -1,23 +1,25 @@
 from celery import shared_task
-import subprocess
-import os
 import signal
+from django.conf import settings
+import os
+import subprocess
 from .models import Stream
-
 
 @shared_task
 def start_stream(rtsp_url, output_path):
-    os.makedirs(os.path.dirname(output_path),exist_ok=True)
-    command = [
-        "ffmpeg", "-i", rtsp_url, "-c:v", "libx264", "-preset", "veryfast", "-f", "hls", output_path
-    ]
+    full_output_path = os.path.join(settings.MEDIA_ROOT, output_path)
+    os.makedirs(os.path.dirname(full_output_path), exist_ok=True)
 
+    command = [
+        "ffmpeg", "-i", rtsp_url,
+        "-c:v", "libx264", "-preset", "veryfast", "-f", "hls",
+        full_output_path
+    ]
     try:
-        subprocess.run(command, check=True)
-        return {"status": "success", "output": output_path}
+        subprocess.run(command, check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
     except subprocess.CalledProcessError as e:
-        return {"status": "error", "error": str(e)}
-    
+        print(f"FFmpeg error: {e.stderr.decode()}")
+      
 
 @shared_task
 def stop_stream(task_id):
