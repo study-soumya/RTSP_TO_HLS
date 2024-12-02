@@ -2,7 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from .models import Stream
 from .serializers import StreamSerializer
-from .tasks import start_stream
+from .tasks import start_stream, stop_stream
 from celery.result import AsyncResult
 from django.conf import settings
 
@@ -66,31 +66,32 @@ class StreamAPIView(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
-    def destroy(self, request, *args, **kwargs):
-        instance = self.get_object()
-        
-        # Stop the Celery task (if it's running)
-        if instance.task_id:
-            # Use the Celery to revoke or terminate the task
-            task_result = AsyncResult(instance.task_id)
+    # views.py
+def destroy(self, request, *args, **kwargs):
+    instance = self.get_object()
 
-            if task_result.state == "PENDING" or task_result.state == "STARTED":
-                # Terminate the task if it's running
-                stop_stream.delay(instance.task_id)
-                instance.is_active = False
-                instance.save()
+    # Check if task_id exists
+    if instance.task_id:
+        # Use Celery to revoke or terminate the task
+        task_result = AsyncResult(instance.task_id)
 
-                return Response(
-                    {"message": "Stream stopped and task terminated successfully."},
-                    status=status.HTTP_204_NO_CONTENT
-                )
-            else:
-                return Response(
-                    {"error": "No active task found to stop."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+        if task_result.state == "PENDING" or task_result.state == "STARTED":
+            # Terminate the task if it's running
+            stop_stream.delay(instance.task_id)
+            instance.is_active = False
+            instance.save()
+
+            return Response(
+                {"message": "Stream stopped and task terminated successfully."},
+                status=status.HTTP_204_NO_CONTENT
+            )
         else:
             return Response(
-                {"error": "No active stream found to stop."},
+                {"error": "No active task found to stop."},
                 status=status.HTTP_400_BAD_REQUEST
             )
+    else:
+        return Response(
+            {"error": "No active stream found to stop."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
