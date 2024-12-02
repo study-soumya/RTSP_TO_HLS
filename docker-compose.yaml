@@ -3,16 +3,19 @@ version: '3.8'
 services:
   web:
     build: .
-    command: python manage.py runserver 0.0.0.0:8000
-    volumes:
-      - .:/app
+    command: gunicorn rtsp_to_hls.wsgi:application --bind 0.0.0.0:8000  # Ensure Gunicorn is used
     ports:
       - "8000:8000"
+    volumes:
+      - .:/app
     depends_on:
       - redis
-  
+    environment:
+      - DEBUG=False  # Adjust as needed
+      - DATABASE_URL=mysql://root:AIVolved@159.65.157.118:3306/VIN_LOCAL  # Replace with your DB connection
+
   redis:
-    image: redis:alpine
+    image: redis:latest
     ports:
       - "6379:6379"
   
@@ -21,3 +24,20 @@ services:
     command: celery -A rtsp_to_hls worker --loglevel=info
     depends_on:
       - redis
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/sites-available/streams
+    depends_on:
+      - web
+    networks:
+      - default
+
+networks:
+  default:
+    driver: bridge

@@ -10,4 +10,4 @@ class StreamSerializer(serializers.ModelSerializer):
 
     def get_hls_url(self, obj):
         # Return the HLS stream URL from the Django server
-        return f"http://127.0.0.1:8000/streams/{obj.ip_address}/stream.m3u8"
+        return f"http://159.65.157.118/streams/{obj.ip_address}/stream.m3u8"

@@ -1,0 +1,37 @@
+server {
+    listen 80;
+    server_name 159.65.157.118;  # Replace this with your domain or IP address
+
+    root /home/indusvision/RTSP_TO_HLS;  # Your working directory for HLS streams
+
+    location /streams/ {
+        # The 'alias' directive allows us to map the /streams URL to the directory where the stream files are stored.
+        alias /home/indusvision/RTSP_TO_HLS/streams/;
+
+        # Serve .m3u8 and .ts files as static content
+        types {
+            application/vnd.apple.mpegurl m3u8;
+            video/mp2t ts;
+        }
+
+        # Allow caching for these files (optional)
+        expires 1h;
+        add_header Cache-Control public;
+    }
+
+    # Additional configuration for other routes, such as API or static files
+    location /api/ {
+        proxy_pass http://127.0.0.1:8000;  # Assuming you're running Django on port 8000
+    }
+
+    # Handle other requests
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    # Error handling
+    error_page 404 /404.html;
+    location = /404.html {
+        root /usr/share/nginx/html;
+    }
+}
